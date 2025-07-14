@@ -384,10 +384,10 @@ CLASS zcl_bmp IMPLEMENTATION.
       IMPORTING
         data = lv_height ).
 
-    " Bits per pixel (offset 28, 2 bytes, little-endian)
+    " Bits per pixel (offset 28, 4 bytes, little-endian)
     lo_converter->convert(
       EXPORTING
-        input = lv_header+28(2)
+        input = lv_header+28(4)
       IMPORTING
         data = lv_bpp ).
 
@@ -407,11 +407,11 @@ CLASS zcl_bmp IMPLEMENTATION.
     lv_pad = ( 4 - ( lv_width * 3 ) MOD 4 ) MOD 4.
     lv_image_size = ( ( lv_width * 3 ) + lv_pad ) * lv_height.
     lv_x = iv_xstring+lv_offset(lv_image_size).
-    
+
     " BMP files store image data from bottom to top, so we need to read rows in reverse order
     " Calculate the starting position for the last row (bottom of image)
     lv_pos = lv_image_size - ( ( lv_width * 3 ) + lv_pad ).
-    
+
     DO lv_height TIMES.
       " Read each row from left to right
       DO lv_width TIMES.
@@ -557,10 +557,10 @@ CLASS zcl_bmp IMPLEMENTATION.
       IMPORTING
         data = mv_font_height ).
 
-    " Bits per pixel (offset 28, 2 bytes, little-endian)
+    " Bits per pixel (offset 28, 4 bytes, little-endian)
     lo_converter->convert(
       EXPORTING
-        input = lv_header+28(2)
+        input = lv_header+28(4)
       IMPORTING
         data = lv_bpp ).
 
@@ -578,14 +578,20 @@ CLASS zcl_bmp IMPLEMENTATION.
     lv_image_size = ( ( mv_font_width * 3 ) + lv_pad ) * mv_font_height.
     lv_x = lv_font_xstring+lv_offset(lv_image_size).
     CLEAR mt_font_pixels.
-    lv_pos = 0.
+    
+    " BMP files store image data from bottom to top, so we need to read rows in reverse order
+    " Calculate the starting position for the last row (bottom of image)
+    lv_pos = lv_image_size - ( ( mv_font_width * 3 ) + lv_pad ).
+    
     DO mv_font_height TIMES.
+      " Read each row from left to right
       DO mv_font_width TIMES.
         lv_pixel = lv_x+lv_pos(3).
         APPEND lv_pixel TO mt_font_pixels.
         lv_pos = lv_pos + 3.
       ENDDO.
-      lv_pos = lv_pos + lv_pad.
+      " Move to the previous row (going up in the image)
+      lv_pos = lv_pos - ( ( mv_font_width * 3 ) + lv_pad ) - ( mv_font_width * 3 ) - lv_pad.
     ENDDO.
   ENDMETHOD.
 ENDCLASS.
