@@ -41,6 +41,12 @@ START-OF-SELECTION.
   CALL SCREEN 100.
 
 * Screen 100 should have a custom control named 'PICTURE_AREA'
+MODULE status_0100 OUTPUT.
+  IF lo_container IS INITIAL.
+    lo_container = NEW cl_gui_custom_container( 'PICTURE_AREA' ).
+    lo_graph->show_in_sapgui_container( lo_container ).
+  ENDIF.
+ENDMODULE.
 ```
 
 **Screen 100** must be created in SE51 with a custom control named `PICTURE_AREA`.
