@@ -7,6 +7,12 @@ CLASS zcl_image_file DEFINITION
     METHODS:
       get_xstring ABSTRACT
         RETURNING VALUE(rv_xstring) TYPE xstring ,
+      import_from_xstring ABSTRACT
+        IMPORTING
+          iv_xstring TYPE xstring,
+      import_from_smw0
+        IMPORTING
+          iv_object TYPE w3objid,
       get_base64
         RETURNING VALUE(rv_b64string) TYPE string,
       get_base64_web_link
@@ -27,6 +33,15 @@ ENDCLASS.
 
 
 CLASS zcl_image_file IMPLEMENTATION.
+
+  METHOD import_from_smw0.
+    DATA lv_xstring TYPE xstring.
+    lv_xstring = load_xstring_from_smw0( iv_file_name = iv_object ).
+    IF lv_xstring IS INITIAL.
+      RETURN.
+    ENDIF.
+    import_from_xstring( iv_xstring = lv_xstring ).
+  ENDMETHOD.
 
   METHOD load_xstring_from_smw0.
     CALL FUNCTION 'Z_BMP_SMW0_DOWNLOADER'

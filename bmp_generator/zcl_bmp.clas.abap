@@ -47,12 +47,8 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           it_coords TYPE table
           iv_fill   TYPE abap_bool OPTIONAL,
       get_xstring REDEFINITION,
-      import_from_xstring
-        IMPORTING
-          iv_xstring TYPE xstring,
-      import_from_smw0
-        IMPORTING
-          iv_object TYPE w3objid,
+      import_from_xstring REDEFINITION,
+
       draw_text
         IMPORTING
           iv_text  TYPE string
@@ -71,13 +67,23 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           mv_font_width  TYPE i,
           mv_font_height TYPE i.
   PRIVATE   SECTION.
+    TYPES: BEGIN OF ts_bmp_header,
+             width  TYPE i,
+             height TYPE i,
+             bpp    TYPE i,
+             offset TYPE i,
+           END OF ts_bmp_header.
+
     DATA: mt_pixels       TYPE TABLE OF tt_pixel,
           mv_font_object  TYPE w3objid,
           mv_glyph_width  TYPE i,
           mv_glyph_height TYPE i,
           mt_font_pixels  TYPE TABLE OF tt_pixel.
     METHODS:
-      load_bmp_font.
+      load_bmp_font,
+      parse_bmp_header
+        IMPORTING iv_file          TYPE xstring
+        RETURNING VALUE(rs_header) TYPE ts_bmp_header.
 ENDCLASS.
 
 CLASS zcl_bmp IMPLEMENTATION.
@@ -348,89 +354,43 @@ CLASS zcl_bmp IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD import_from_xstring.
-    DATA: lv_header     TYPE x LENGTH 54,
-          lv_width      TYPE i,
-          lv_height     TYPE i,
-          lv_bpp        TYPE i,
-          lv_offset     TYPE i,
-          lv_pad        TYPE i,
-          lv_image_size TYPE i,
-          lv_x          TYPE xstring,
-          lv_pixel      TYPE x LENGTH 3,
-          lv_row        TYPE xstring,
-          lv_i          TYPE i,
-          lv_j          TYPE i,
-          lv_idx        TYPE i,
-          lv_pos        TYPE i.
-    " Read BMP header
-    lv_header = iv_xstring(54).
-    " Get width, height, bpp, offset
-    DATA lv_tmp_x TYPE i.
+    DATA:
+      lv_offset     TYPE i,
+      lv_pad        TYPE i,
+      lv_image_size TYPE i,
+      lv_x          TYPE xstring,
+      lv_pixel      TYPE x LENGTH 3,
+      lv_pos        TYPE i.
 
+    DATA(ls_header) = parse_bmp_header( iv_xstring ).
 
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
-
-    " Width (offset 18, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+18(4)
-      IMPORTING
-        data = lv_width ).
-
-    " Height (offset 22, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+22(4)
-      IMPORTING
-        data = lv_height ).
-
-    " Bits per pixel (offset 28, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+28(4)
-      IMPORTING
-        data = lv_bpp ).
-
-    " Offset (offset 10, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+10(4)
-      IMPORTING
-        data = lv_offset ).
-    IF lv_bpp <> 24.
+    IF ls_header-bpp <> 24.
       " Only 24bpp supported
       RETURN.
     ENDIF.
-    mv_width = lv_width.
-    mv_height = lv_height.
+    mv_width = ls_header-width.
+    mv_height = ls_header-height.
+    lv_offset = ls_header-offset.
+
     CLEAR mt_pixels.
-    lv_pad = ( 4 - ( lv_width * 3 ) MOD 4 ) MOD 4.
-    lv_image_size = ( ( lv_width * 3 ) + lv_pad ) * lv_height.
+    lv_pad = ( 4 - ( mv_width * 3 ) MOD 4 ) MOD 4.
+    lv_image_size = ( ( mv_width * 3 ) + lv_pad ) * mv_height.
     lv_x = iv_xstring+lv_offset(lv_image_size).
 
     " BMP files store image data from bottom to top, so we need to read rows in reverse order
     " Calculate the starting position for the last row (bottom of image)
-    lv_pos = lv_image_size - ( ( lv_width * 3 ) + lv_pad ).
+    lv_pos = lv_image_size - ( ( mv_width * 3 ) + lv_pad ).
 
-    DO lv_height TIMES.
+    DO mv_height TIMES.
       " Read each row from left to right
-      DO lv_width TIMES.
+      DO mv_width TIMES.
         lv_pixel = lv_x+lv_pos(3).
         APPEND lv_pixel TO mt_pixels.
         lv_pos = lv_pos + 3.
       ENDDO.
       " Move to the previous row (going up in the image)
-      lv_pos = lv_pos - ( ( lv_width * 3 ) + lv_pad ) - ( lv_width * 3 ) - lv_pad.
+      lv_pos = lv_pos - ( ( mv_width * 3 ) + lv_pad ) - ( mv_width * 3 ) - lv_pad.
     ENDDO.
-  ENDMETHOD.
-
-  METHOD import_from_smw0.
-    DATA lv_xstring TYPE xstring.
-    lv_xstring = load_xstring_from_smw0( iv_file_name = iv_object ).
-    IF lv_xstring IS INITIAL.
-      RETURN.
-    ENDIF.
-    import_from_xstring( iv_xstring = lv_xstring ).
   ENDMETHOD.
 
   METHOD draw_text.
@@ -463,10 +423,15 @@ CLASS zcl_bmp IMPLEMENTATION.
           lv_dst_x       TYPE i,
           lv_dst_y       TYPE i,
           lv_glyph_index TYPE i,
-          lv_symbol      TYPE c LENGTH 1.
+          lv_symbol      TYPE c LENGTH 1,
+          lv_code_x      TYPE xstring.
 
     lv_symbol = iv_symbol.
-    cl_abap_conv_out_ce=>create( encoding = '1504' )->convert( EXPORTING data = lv_symbol IMPORTING buffer = DATA(lv_code_x) ).
+    cl_abap_conv_out_ce=>create( encoding = '1504' )->convert(
+        EXPORTING data = lv_symbol
+        IMPORTING buffer = lv_code_x
+        ).
+
     lv_code = lv_code_x.
     IF lv_code < 0 OR lv_code > 255.
       RETURN.
@@ -530,47 +495,21 @@ CLASS zcl_bmp IMPLEMENTATION.
       CLEAR: mt_font_pixels, mv_font_width, mv_font_height.
       RETURN.
     ENDIF.
-    DATA: lv_header     TYPE x LENGTH 54,
-          lv_bpp        TYPE i,
-          lv_offset     TYPE i,
-          lv_pad        TYPE i,
-          lv_image_size TYPE i,
+
+    DATA(ls_header) = parse_bmp_header( lv_font_xstring ).
+
+    DATA: lv_image_size TYPE i,
           lv_x          TYPE xstring,
           lv_pixel      TYPE x LENGTH 3,
-          lv_pos        TYPE i.
-    lv_header = lv_font_xstring(54).
-    DATA lv_tmp_x TYPE i.
+          lv_pad        TYPE i,
+          lv_pos        TYPE i,
+          lv_offset     TYPE i.
 
-    DATA(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
+    lv_offset = ls_header-offset.
+    mv_font_width = ls_header-width.
+    mv_font_height = ls_header-height.
 
-    " Width (offset 18, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+18(4)
-      IMPORTING
-        data = mv_font_width ).
-
-    " Height (offset 22, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+22(4)
-      IMPORTING
-        data = mv_font_height ).
-
-    " Bits per pixel (offset 28, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+28(4)
-      IMPORTING
-        data = lv_bpp ).
-
-    " Offset (offset 10, 4 bytes, little-endian)
-    lo_converter->convert(
-      EXPORTING
-        input = lv_header+10(4)
-      IMPORTING
-        data = lv_offset ).
-    IF lv_bpp <> 24.
+    IF ls_header-bpp <> 24.
       CLEAR: mt_font_pixels, mv_font_width, mv_font_height.
       RETURN.
     ENDIF.
@@ -606,6 +545,42 @@ CLASS zcl_bmp IMPLEMENTATION.
         width = mv_width
         height = mv_height
      ).
+  ENDMETHOD.
+
+  METHOD parse_bmp_header.
+    DATA: lv_header     TYPE x LENGTH 54.
+
+    lv_header = iv_file(54).
+
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
+
+    " Width (offset 18, 4 bytes, little-endian)
+    lo_converter->convert(
+      EXPORTING
+        input = lv_header+18(4)
+      IMPORTING
+        data = rs_header-width ).
+
+    " Height (offset 22, 4 bytes, little-endian)
+    lo_converter->convert(
+      EXPORTING
+        input = lv_header+22(4)
+      IMPORTING
+        data = rs_header-height ).
+
+    " Bits per pixel (offset 28, 4 bytes, little-endian)
+    lo_converter->convert(
+      EXPORTING
+        input = lv_header+28(4)
+      IMPORTING
+        data = rs_header-bpp ).
+
+    " Offset (offset 10, 4 bytes, little-endian)
+    lo_converter->convert(
+      EXPORTING
+        input = lv_header+10(4)
+      IMPORTING
+        data = rs_header-offset ).
   ENDMETHOD.
 
 ENDCLASS.

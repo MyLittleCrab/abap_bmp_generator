@@ -6,7 +6,7 @@ CLASS zcl_bmp_sine_graph DEFINITION PUBLIC CREATE PUBLIC
                           iv_frequency TYPE f DEFAULT 1
                           iv_phase     TYPE f DEFAULT 0.
   PRIVATE SECTION.
-    methods:
+    METHODS:
       draw_axes.
 ENDCLASS.
 
@@ -19,14 +19,7 @@ CLASS zcl_bmp_sine_graph IMPLEMENTATION.
 
 
     CREATE OBJECT lo_color EXPORTING iv_r = 0 iv_g = 0 iv_b = 0.
-    " Draw X axis (horizontal, center)
-    CREATE OBJECT lo_coord1 EXPORTING iv_x = 0 iv_y = mv_height / 2.
-    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width - 1 iv_y = mv_height / 2.
-    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
-    " Draw Y axis (vertical, left)
-    CREATE OBJECT lo_coord1 EXPORTING iv_x = mv_width / 2 iv_y = 0.
-    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width / 2 iv_y = mv_height - 1.
-    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
+
     " Draw header
     CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = 10.
     draw_text( iv_text = '[График синуса]' io_coord = lo_coord1 ).
@@ -38,12 +31,21 @@ CLASS zcl_bmp_sine_graph IMPLEMENTATION.
     CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height - mv_font_height - 5.
     draw_text( iv_text = '-1' io_coord = lo_coord1 ).
 
-
-
     CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = mv_height - mv_font_height - 5.
-    data lv_string_date type char50.
-    write sy-datum to lv_string_date.
+    DATA lv_string_date TYPE char50.
+    WRITE sy-datum TO lv_string_date.
     draw_text( iv_text = |Сегодня: { lv_string_date }| io_coord = lo_coord1 ).
+
+
+    " Draw X axis (horizontal, center)
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 0 iv_y = mv_height / 2.
+    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width - 1 iv_y = mv_height / 2.
+    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
+    " Draw Y axis (vertical, left)
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = mv_width / 2 iv_y = 0.
+    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width / 2 iv_y = mv_height - 1.
+    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
+
 
   ENDMETHOD.
 
