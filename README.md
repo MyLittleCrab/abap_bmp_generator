@@ -14,6 +14,7 @@ This project provides a set of ABAP classes and example programs for generating 
 - `bmp_generator/zcl_image_file.clas.abap`: Abstract base class for image file operations (e.g., loading, exporting, displaying, downloading images).
 - `bmp_generator/zcl_bmp.clas.abap`: Core class for BMP image creation and drawing operations.
 - `bmp_generator/zcl_bmp_color.clas.abap`, `zcl_bmp_coord.clas.abap`: Helper classes for color and coordinate management.
+- `bmp_generator/z_bmp_smw0_downloader.func.abap`: Function module to download files (such as BMP fonts or images) from SAP's SMW0 repository to the application server or presentation server.
 - `examples/zcl_bmp_sine_graph.clas.abap`: Example class for drawing a sine graph.
 - `examples/zshow_sine_bmp.abap`: Example program to display a sine graph BMP in a SAP GUI container.
 - `examples/zdownload_sine_bmp.abap`: Example program to generate and download a sine graph BMP.

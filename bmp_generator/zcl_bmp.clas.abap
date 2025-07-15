@@ -2,7 +2,9 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
     INHERITING FROM zcl_image_file.
   PUBLIC SECTION.
 
-
+    "! BMP image manipulation class
+    "! @description Provides functionality to create, modify and manipulate BMP images
+    "! including drawing basic shapes, text and importing/exporting BMP files
 
     TYPES: tt_pixel TYPE x LENGTH 3,
            BEGIN OF ts_sizes,
@@ -10,6 +12,12 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
              height TYPE i,
            END OF ts_sizes.
     METHODS:
+      "! Creates a new BMP image instance
+      "! @parameter iv_width | Width of the image in pixels
+      "! @parameter iv_height | Height of the image in pixels
+      "! @parameter iv_font_object | Optional SMW0 object name containing font bitmap
+      "! @parameter iv_glyph_width | Width of each font glyph in pixels
+      "! @parameter iv_glyph_height | Height of each font glyph in pixels
       constructor
         IMPORTING
           iv_width        TYPE i
@@ -17,15 +25,32 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           iv_font_object  TYPE w3objid OPTIONAL
           iv_glyph_width  TYPE i DEFAULT 32
           iv_glyph_height TYPE i DEFAULT 32,
+
+      "! Draws a single pixel at specified coordinates
+      "! @parameter io_color | Color object containing RGB values
+      "! @parameter io_coord | Coordinate object containing x,y position
       draw_pixel
         IMPORTING
           io_color TYPE REF TO zcl_bmp_color
           io_coord TYPE REF TO zcl_bmp_coord,
+
+      "! Draws a line between two points
+      "! @parameter io_color | Color object containing RGB values
+      "! @parameter io_coord_start | Starting coordinate of the line
+      "! @parameter io_coord_end | Ending coordinate of the line
       draw_line
         IMPORTING
           io_color       TYPE REF TO zcl_bmp_color
           io_coord_start TYPE REF TO zcl_bmp_coord
           io_coord_end   TYPE REF TO zcl_bmp_coord,
+
+      "! Draws a rectangle using four coordinates
+      "! @parameter io_color | Color object containing RGB values
+      "! @parameter io_coord1 | First corner coordinate
+      "! @parameter io_coord2 | Second corner coordinate
+      "! @parameter io_coord3 | Third corner coordinate
+      "! @parameter io_coord4 | Fourth corner coordinate
+      "! @parameter iv_fill | Optional flag to fill the rectangle
       draw_rectangle
         IMPORTING
           io_color  TYPE REF TO zcl_bmp_color
@@ -34,6 +59,13 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           io_coord3 TYPE REF TO zcl_bmp_coord
           io_coord4 TYPE REF TO zcl_bmp_coord
           iv_fill   TYPE abap_bool OPTIONAL,
+
+      "! Draws a triangle using three coordinates
+      "! @parameter io_color | Color object containing RGB values
+      "! @parameter io_coord1 | First corner coordinate
+      "! @parameter io_coord2 | Second corner coordinate
+      "! @parameter io_coord3 | Third corner coordinate
+      "! @parameter iv_fill | Optional flag to fill the triangle
       draw_triangle
         IMPORTING
           io_color  TYPE REF TO zcl_bmp_color
@@ -41,24 +73,48 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           io_coord2 TYPE REF TO zcl_bmp_coord
           io_coord3 TYPE REF TO zcl_bmp_coord
           iv_fill   TYPE abap_bool OPTIONAL,
+
+      "! Draws a polygon using a table of coordinates
+      "! @parameter io_color | Color object containing RGB values
+      "! @parameter it_coords | Table of coordinates defining the polygon vertices
+      "! @parameter iv_fill | Optional flag to fill the polygon
       draw_polygon
         IMPORTING
           io_color  TYPE REF TO zcl_bmp_color
           it_coords TYPE table
           iv_fill   TYPE abap_bool OPTIONAL,
+
+      "! Converts the BMP image to XSTRING format
+      "! @parameter rv_xstring | Binary representation of the BMP image
       get_xstring REDEFINITION,
+
+      "! Imports BMP image data from XSTRING format
+      "! @parameter iv_xstring | Binary data to import
       import_from_xstring REDEFINITION,
 
+      "! Draws text at specified coordinates using the loaded font
+      "! @parameter iv_text | Text to draw
+      "! @parameter io_coord | Starting coordinate for the text
       draw_text
         IMPORTING
           iv_text  TYPE string
           io_coord TYPE REF TO zcl_bmp_coord,
+
+      "! Draws a single character at specified coordinates
+      "! @parameter iv_symbol | Character to draw
+      "! @parameter io_coord | Coordinate where to draw the character
       draw_symbol
         IMPORTING
           iv_symbol TYPE c
           io_coord  TYPE REF TO zcl_bmp_coord,
+
+      "! Gets the dimensions of the loaded font
+      "! @parameter rs_sizes | Structure containing font width and height
       get_font_sizes
         RETURNING VALUE(rs_sizes) TYPE ts_sizes,
+
+      "! Gets the dimensions of the image
+      "! @parameter rs_sizes | Structure containing image width and height
       get_image_sizes
         RETURNING VALUE(rs_sizes) TYPE ts_sizes.
   PROTECTED SECTION.
@@ -80,7 +136,13 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
           mv_glyph_height TYPE i,
           mt_font_pixels  TYPE TABLE OF tt_pixel.
     METHODS:
+      "! Loads bitmap font from SMW0 object
+      "! @description Reads and processes font bitmap data from SMW0 repository
       load_bmp_font,
+
+      "! Parses BMP file header information
+      "! @parameter iv_file | Binary data containing BMP file
+      "! @parameter rs_header | Structure containing parsed header information
       parse_bmp_header
         IMPORTING iv_file          TYPE xstring
         RETURNING VALUE(rs_header) TYPE ts_bmp_header.
