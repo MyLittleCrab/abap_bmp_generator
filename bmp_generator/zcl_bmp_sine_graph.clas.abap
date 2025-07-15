@@ -1,60 +1,83 @@
-REPORT zdownload_sine_bmp.
+CLASS zcl_bmp_sine_graph DEFINITION PUBLIC CREATE PUBLIC
+    INHERITING FROM zcl_bmp.
+  PUBLIC SECTION.
+    METHODS:
+      draw_sine IMPORTING iv_amplitude TYPE f DEFAULT 1
+                          iv_frequency TYPE f DEFAULT 1
+                          iv_phase     TYPE f DEFAULT 0.
+  PRIVATE SECTION.
+    methods:
+      draw_axes.
+ENDCLASS.
 
-DATA: lo_bmp         TYPE REF TO zcl_bmp,
-      lo_sine_graph  TYPE REF TO zcl_bmp_sine_graph,
-      lv_xstring     TYPE xstring,
-      lt_bin         TYPE STANDARD TABLE OF x255,
-      lv_filename    TYPE string,
-      lv_fullpath    TYPE string,
-      lv_width       TYPE i VALUE 800,
-      lv_height      TYPE i VALUE 400.
+CLASS zcl_bmp_sine_graph IMPLEMENTATION.
 
-" 1. Create BMP object
-CREATE OBJECT lo_bmp
-  EXPORTING
-    iv_width  = lv_width
-    iv_height = lv_height.
+  METHOD draw_axes.
+    DATA: lo_color  TYPE REF TO zcl_bmp_color,
+          lo_coord1 TYPE REF TO zcl_bmp_coord,
+          lo_coord2 TYPE REF TO zcl_bmp_coord.
 
-" 2. Create sine graph object
-CREATE OBJECT lo_sine_graph
-  EXPORTING
-    iv_width  = lv_width
-    iv_height = lv_height.
 
-" 3. Draw axes and sine wave
-lo_sine_graph->draw_axes( io_bmp = lo_bmp ).
-lo_sine_graph->draw_sine( io_bmp = lo_bmp ).
+    CREATE OBJECT lo_color EXPORTING iv_r = 0 iv_g = 0 iv_b = 0.
+    " Draw X axis (horizontal, center)
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 0 iv_y = mv_height / 2.
+    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width - 1 iv_y = mv_height / 2.
+    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
+    " Draw Y axis (vertical, left)
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = mv_width / 2 iv_y = 0.
+    CREATE OBJECT lo_coord2 EXPORTING iv_x = mv_width / 2 iv_y = mv_height - 1.
+    draw_line( io_color = lo_color io_coord_start = lo_coord1 io_coord_end = lo_coord2 ).
+    " Draw header
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = 10.
+    draw_text( iv_text = '[График синуса]' io_coord = lo_coord1 ).
+    " Draw -1, 0, +1 labels on Y axis
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = 5.
+    draw_text( iv_text = '+1' io_coord = lo_coord1 ).
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height / 2 - ( mv_font_height / 2 ).
+    draw_text( iv_text = '0' io_coord = lo_coord1 ).
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height - mv_font_height - 5.
+    draw_text( iv_text = '-1' io_coord = lo_coord1 ).
 
-" 4. Get BMP as xstring
-lv_xstring = lo_bmp->get_xstring( ).
 
-" 5. Convert xstring to binary table for download
-CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
-  EXPORTING
-    buffer        = lv_xstring
-  TABLES
-    binary_tab    = lt_bin.
 
-" 6. Ask user for file path
-lv_filename = 'sine_graph.bmp'.
-CALL METHOD cl_gui_frontend_services=>file_save_dialog
-  EXPORTING
-    default_extension = 'bmp'
-    default_file_name = lv_filename
-  CHANGING
-    filename          = lv_filename
-    fullpath          = lv_fullpath.
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = mv_height - mv_font_height - 5.
+    data lv_string_date type char50.
+    write sy-datum to lv_string_date.
+    draw_text( iv_text = |Сегодня: { lv_string_date }| io_coord = lo_coord1 ).
 
-IF sy-subrc = 0 AND lv_fullpath IS NOT INITIAL.
-  " 7. Download file to client
-  CALL METHOD cl_gui_frontend_services=>gui_download
-    EXPORTING
-      bin_filesize = xstrlen( lv_xstring )
-      filename     = lv_fullpath
-      filetype     = 'BIN'
-    CHANGING
-      data_tab     = lt_bin.
-  MESSAGE |File saved to { lv_fullpath }| TYPE 'S'.
-ELSE.
-  MESSAGE 'File save cancelled.' TYPE 'I'.
-ENDIF.
+  ENDMETHOD.
+
+  METHOD draw_sine.
+    draw_axes( ).
+
+    CONSTANTS kv_pi TYPE f VALUE '3.14159265359'.
+
+    DATA: lo_color  TYPE REF TO zcl_bmp_color,
+          lo_coord1 TYPE REF TO zcl_bmp_coord,
+          lo_coord2 TYPE REF TO zcl_bmp_coord,
+          lv_y      TYPE i,
+          lv_prev_x TYPE i,
+          lv_prev_y TYPE i,
+          lv_t      TYPE f,
+          lv_val    TYPE f,
+          lv_ampl   TYPE f,
+          lv_freq   TYPE f,
+          lv_phase  TYPE f.
+    CREATE OBJECT lo_color EXPORTING iv_r = 0 iv_g = 0 iv_b = 255.
+    lv_ampl = iv_amplitude.
+    lv_freq = iv_frequency.
+    lv_phase = iv_phase.
+    DO mv_width - 1 TIMES.
+      DATA(lv_x) = sy-index.
+      lv_t = ( lv_x * 2 * kv_pi ) / mv_width.
+      lv_val = lv_ampl * sin( lv_freq * lv_t + lv_phase ).
+      lv_y = mv_height / 2 - trunc( lv_val * ( mv_height / 2 - 20 ) ).
+      IF lv_x > 0.
+        CREATE OBJECT lo_coord2 EXPORTING iv_x = lv_x iv_y = mv_height - lv_y.
+        draw_pixel( io_color = lo_color  io_coord = lo_coord2 ).
+      ENDIF.
+      lv_prev_x = lv_x.
+      lv_prev_y = lv_y.
+    ENDDO.
+  ENDMETHOD.
+ENDCLASS.

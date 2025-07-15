@@ -1,7 +1,14 @@
-CLASS zcl_bmp DEFINITION PUBLIC FINAL CREATE PUBLIC.
+CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
+    INHERITING FROM zcl_image_file.
   PUBLIC SECTION.
 
-    TYPES: tt_pixel TYPE x LENGTH 3.
+
+
+    TYPES: tt_pixel TYPE x LENGTH 3,
+           BEGIN OF ts_sizes,
+             width  TYPE i,
+             height TYPE i,
+           END OF ts_sizes.
     METHODS:
       constructor
         IMPORTING
@@ -39,8 +46,7 @@ CLASS zcl_bmp DEFINITION PUBLIC FINAL CREATE PUBLIC.
           io_color  TYPE REF TO zcl_bmp_color
           it_coords TYPE table
           iv_fill   TYPE abap_bool OPTIONAL,
-      get_xstring
-        RETURNING VALUE(rv_xstring) TYPE xstring,
+      get_xstring REDEFINITION,
       import_from_xstring
         IMPORTING
           iv_xstring TYPE xstring,
@@ -54,37 +60,31 @@ CLASS zcl_bmp DEFINITION PUBLIC FINAL CREATE PUBLIC.
       draw_symbol
         IMPORTING
           iv_symbol TYPE c
-          io_coord  TYPE REF TO zcl_bmp_coord.
-  PRIVATE SECTION.
+          io_coord  TYPE REF TO zcl_bmp_coord,
+      get_font_sizes
+        RETURNING VALUE(rs_sizes) TYPE ts_sizes,
+      get_image_sizes
+        RETURNING VALUE(rs_sizes) TYPE ts_sizes.
+  PROTECTED SECTION.
+    DATA: mv_width       TYPE i,
+          mv_height      TYPE i,
+          mv_font_width  TYPE i,
+          mv_font_height TYPE i.
+  PRIVATE   SECTION.
     DATA: mt_pixels       TYPE TABLE OF tt_pixel,
-          mv_width        TYPE i,
-          mv_height       TYPE i,
           mv_font_object  TYPE w3objid,
           mv_glyph_width  TYPE i,
           mv_glyph_height TYPE i,
-          mt_font_pixels  TYPE TABLE OF tt_pixel,
-          mv_font_width   TYPE i,
-          mv_font_height  TYPE i.
+          mt_font_pixels  TYPE TABLE OF tt_pixel.
     METHODS:
-      load_bmp_font,
-      load_xstring_from_smw0
-        IMPORTING iv_file_name           TYPE w3objid
-        RETURNING VALUE(rv_file_content) TYPE xstring.
+      load_bmp_font.
 ENDCLASS.
 
 CLASS zcl_bmp IMPLEMENTATION.
 
-  METHOD load_xstring_from_smw0.
-
-    CALL FUNCTION 'Z_BMP_SMW0_DOWNLOADER'
-      EXPORTING
-        iv_file_name    = iv_file_name
-      IMPORTING
-        ev_file_content = rv_file_content.
-
-  ENDMETHOD.
-
   METHOD constructor.
+    super->constructor( ).
+
     mv_width  = iv_width.
     mv_height = iv_height.
     IF iv_font_object IS SUPPLIED.
@@ -368,7 +368,7 @@ CLASS zcl_bmp IMPLEMENTATION.
     DATA lv_tmp_x TYPE i.
 
 
-    data(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
 
     " Width (offset 18, 4 bytes, little-endian)
     lo_converter->convert(
@@ -466,7 +466,7 @@ CLASS zcl_bmp IMPLEMENTATION.
           lv_symbol      TYPE c LENGTH 1.
 
     lv_symbol = iv_symbol.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_symbol IMPORTING buffer = DATA(lv_code_x) ).
+    cl_abap_conv_out_ce=>create( encoding = '1504' )->convert( EXPORTING data = lv_symbol IMPORTING buffer = DATA(lv_code_x) ).
     lv_code = lv_code_x.
     IF lv_code < 0 OR lv_code > 255.
       RETURN.
@@ -541,7 +541,7 @@ CLASS zcl_bmp IMPLEMENTATION.
     lv_header = lv_font_xstring(54).
     DATA lv_tmp_x TYPE i.
 
-    data(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
+    DATA(lo_converter) = cl_abap_conv_in_ce=>create( endian = 'L' ).
 
     " Width (offset 18, 4 bytes, little-endian)
     lo_converter->convert(
@@ -578,11 +578,11 @@ CLASS zcl_bmp IMPLEMENTATION.
     lv_image_size = ( ( mv_font_width * 3 ) + lv_pad ) * mv_font_height.
     lv_x = lv_font_xstring+lv_offset(lv_image_size).
     CLEAR mt_font_pixels.
-    
+
     " BMP files store image data from bottom to top, so we need to read rows in reverse order
     " Calculate the starting position for the last row (bottom of image)
     lv_pos = lv_image_size - ( ( mv_font_width * 3 ) + lv_pad ).
-    
+
     DO mv_font_height TIMES.
       " Read each row from left to right
       DO mv_font_width TIMES.
@@ -594,4 +594,18 @@ CLASS zcl_bmp IMPLEMENTATION.
       lv_pos = lv_pos - ( ( mv_font_width * 3 ) + lv_pad ) - ( mv_font_width * 3 ) - lv_pad.
     ENDDO.
   ENDMETHOD.
+  METHOD get_font_sizes.
+    rs_sizes = VALUE #(
+        width = mv_font_width
+        height = mv_font_height
+     ).
+  ENDMETHOD.
+
+  METHOD get_image_sizes.
+    rs_sizes = VALUE #(
+        width = mv_width
+        height = mv_height
+     ).
+  ENDMETHOD.
+
 ENDCLASS.
