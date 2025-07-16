@@ -1,6 +1,6 @@
 # ABAP Image Generator
 
-This project provides a set of ABAP classes and example programs for generating and manipulating BMP (bitmap) images directly within SAP. It includes utilities for drawing basic shapes, lines, polygons, and text, as well as a demonstration for plotting a sine graph and displaying or downloading the resulting BMP image in SAP GUI.
+This project provides a set of ABAP classes and example programs for generating and manipulating BMP (bitmap) and SVG (Scalable Vector Graphics) images directly within SAP. It includes utilities for drawing basic shapes, lines, polygons, and text, as well as a demonstration for plotting a sine graph and displaying or downloading the resulting BMP image in SAP GUI.
 
 ## Features
 
@@ -25,7 +25,7 @@ This project provides a set of ABAP classes and example programs for generating 
 
 ### Drawing Custom Images
 
-You can use the `zcl_bmp` class directly to create custom images:
+You can use the `zcl_bmp` or `zcl_svg` classes directly to create custom images:
 
 ```abap
 DATA(lo_bmp) = NEW zcl_bmp( iv_width = 400 iv_height = 300 ).
