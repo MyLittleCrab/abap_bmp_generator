@@ -10,12 +10,15 @@ CLASS zcl_bmp_sine_graph DEFINITION PUBLIC CREATE PUBLIC
       draw_axes.
 ENDCLASS.
 
-CLASS zcl_bmp_sine_graph IMPLEMENTATION.
+
+
+CLASS ZCL_BMP_SINE_GRAPH IMPLEMENTATION.
+
 
   METHOD draw_axes.
-    DATA: lo_color  TYPE REF TO zcl_bmp_color,
-          lo_coord1 TYPE REF TO zcl_bmp_coord,
-          lo_coord2 TYPE REF TO zcl_bmp_coord.
+    DATA: lo_color  TYPE REF TO zcl_image_color,
+          lo_coord1 TYPE REF TO zcl_image_coord,
+          lo_coord2 TYPE REF TO zcl_image_coord.
 
 
     CREATE OBJECT lo_color EXPORTING iv_r = 0 iv_g = 0 iv_b = 0.
@@ -26,12 +29,12 @@ CLASS zcl_bmp_sine_graph IMPLEMENTATION.
     " Draw -1, 0, +1 labels on Y axis
     CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = 5.
     draw_text( iv_text = '+1' io_coord = lo_coord1 ).
-    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height / 2 - ( mv_font_height / 2 ).
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height / 2 - 20.
     draw_text( iv_text = '0' io_coord = lo_coord1 ).
-    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height - mv_font_height - 5.
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 2 iv_y = mv_height - 20.
     draw_text( iv_text = '-1' io_coord = lo_coord1 ).
 
-    CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = mv_height - mv_font_height - 5.
+    CREATE OBJECT lo_coord1 EXPORTING iv_x = 80 iv_y = mv_height - 20.
     DATA lv_string_date TYPE char50.
     WRITE sy-datum TO lv_string_date.
     draw_text( iv_text = |Сегодня: { lv_string_date }| io_coord = lo_coord1 ).
@@ -49,14 +52,15 @@ CLASS zcl_bmp_sine_graph IMPLEMENTATION.
 
   ENDMETHOD.
 
+
   METHOD draw_sine.
     draw_axes( ).
 
     CONSTANTS kv_pi TYPE f VALUE '3.14159265359'.
 
-    DATA: lo_color  TYPE REF TO zcl_bmp_color,
-          lo_coord1 TYPE REF TO zcl_bmp_coord,
-          lo_coord2 TYPE REF TO zcl_bmp_coord,
+    DATA: lo_color  TYPE REF TO zcl_image_color,
+          lo_coord1 TYPE REF TO zcl_image_coord,
+          lo_coord2 TYPE REF TO zcl_image_coord,
           lv_y      TYPE i,
           lv_prev_x TYPE i,
           lv_prev_y TYPE i,

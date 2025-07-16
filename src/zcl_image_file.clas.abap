@@ -41,7 +41,9 @@ CLASS zcl_image_file DEFINITION
       "! @parameter iv_filename | Optional filename for the downloaded file (default: 'graph.bmp')
       download_in_sapgui
         IMPORTING
-          VALUE(iv_filename) TYPE string DEFAULT 'graph.bmp'.
+          VALUE(iv_filename) TYPE string DEFAULT 'graph.bmp',
+      get_mime_type ABSTRACT
+        RETURNING VALUE(rv_mime) type string.
 
   PROTECTED SECTION.
     METHODS:
@@ -84,7 +86,8 @@ CLASS zcl_image_file IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD get_base64_web_link.
-    rv_b64web_link = |data:image/bmp;base64,{ me->get_base64( ) }|.
+*
+    rv_b64web_link = |data:{ me->get_mime_type( ) };base64,{ me->get_base64( ) }|.
   ENDMETHOD.
 
   METHOD show_in_sapgui_container.

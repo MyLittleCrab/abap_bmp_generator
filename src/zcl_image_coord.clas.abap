@@ -1,4 +1,4 @@
-CLASS zcl_bmp_coord DEFINITION PUBLIC FINAL CREATE PUBLIC.
+CLASS zcl_image_coord DEFINITION PUBLIC FINAL CREATE PUBLIC.
   PUBLIC SECTION.
     METHODS:
       constructor IMPORTING iv_x TYPE i iv_y TYPE i,
@@ -9,7 +9,7 @@ CLASS zcl_bmp_coord DEFINITION PUBLIC FINAL CREATE PUBLIC.
           mv_y TYPE i.
 ENDCLASS.
 
-CLASS zcl_bmp_coord IMPLEMENTATION.
+CLASS zcl_image_coord IMPLEMENTATION.
   METHOD constructor.
     mv_x = iv_x.
     mv_y = iv_y.

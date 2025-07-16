@@ -31,8 +31,8 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! @parameter io_coord | Coordinate object containing x,y position
       draw_pixel
         IMPORTING
-          io_color TYPE REF TO zcl_bmp_color
-          io_coord TYPE REF TO zcl_bmp_coord,
+          io_color TYPE REF TO zcl_image_color
+          io_coord TYPE REF TO zcl_image_coord,
 
       "! Draws a line between two points
       "! @parameter io_color | Color object containing RGB values
@@ -40,9 +40,9 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! @parameter io_coord_end | Ending coordinate of the line
       draw_line
         IMPORTING
-          io_color       TYPE REF TO zcl_bmp_color
-          io_coord_start TYPE REF TO zcl_bmp_coord
-          io_coord_end   TYPE REF TO zcl_bmp_coord,
+          io_color       TYPE REF TO zcl_image_color
+          io_coord_start TYPE REF TO zcl_image_coord
+          io_coord_end   TYPE REF TO zcl_image_coord,
 
       "! Draws a rectangle using four coordinates
       "! @parameter io_color | Color object containing RGB values
@@ -53,11 +53,11 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! @parameter iv_fill | Optional flag to fill the rectangle
       draw_rectangle
         IMPORTING
-          io_color  TYPE REF TO zcl_bmp_color
-          io_coord1 TYPE REF TO zcl_bmp_coord
-          io_coord2 TYPE REF TO zcl_bmp_coord
-          io_coord3 TYPE REF TO zcl_bmp_coord
-          io_coord4 TYPE REF TO zcl_bmp_coord
+          io_color  TYPE REF TO zcl_image_color
+          io_coord1 TYPE REF TO zcl_image_coord
+          io_coord2 TYPE REF TO zcl_image_coord
+          io_coord3 TYPE REF TO zcl_image_coord
+          io_coord4 TYPE REF TO zcl_image_coord
           iv_fill   TYPE abap_bool OPTIONAL,
 
       "! Draws a triangle using three coordinates
@@ -68,10 +68,10 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! @parameter iv_fill | Optional flag to fill the triangle
       draw_triangle
         IMPORTING
-          io_color  TYPE REF TO zcl_bmp_color
-          io_coord1 TYPE REF TO zcl_bmp_coord
-          io_coord2 TYPE REF TO zcl_bmp_coord
-          io_coord3 TYPE REF TO zcl_bmp_coord
+          io_color  TYPE REF TO zcl_image_color
+          io_coord1 TYPE REF TO zcl_image_coord
+          io_coord2 TYPE REF TO zcl_image_coord
+          io_coord3 TYPE REF TO zcl_image_coord
           iv_fill   TYPE abap_bool OPTIONAL,
 
       "! Draws a polygon using a table of coordinates
@@ -80,7 +80,7 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! @parameter iv_fill | Optional flag to fill the polygon
       draw_polygon
         IMPORTING
-          io_color  TYPE REF TO zcl_bmp_color
+          io_color  TYPE REF TO zcl_image_color
           it_coords TYPE table
           iv_fill   TYPE abap_bool OPTIONAL,
 
@@ -98,7 +98,7 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       draw_text
         IMPORTING
           iv_text  TYPE string
-          io_coord TYPE REF TO zcl_bmp_coord,
+          io_coord TYPE REF TO zcl_image_coord,
 
       "! Draws a single character at specified coordinates
       "! @parameter iv_symbol | Character to draw
@@ -106,7 +106,7 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       draw_symbol
         IMPORTING
           iv_symbol TYPE c
-          io_coord  TYPE REF TO zcl_bmp_coord,
+          io_coord  TYPE REF TO zcl_image_coord,
 
       "! Gets the dimensions of the loaded font
       "! @parameter rs_sizes | Structure containing font width and height
@@ -116,7 +116,8 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
       "! Gets the dimensions of the image
       "! @parameter rs_sizes | Structure containing image width and height
       get_image_sizes
-        RETURNING VALUE(rs_sizes) TYPE ts_sizes.
+        RETURNING VALUE(rs_sizes) TYPE ts_sizes,
+      get_mime_type REDEFINITION.
   PROTECTED SECTION.
     DATA: mv_width       TYPE i,
           mv_height      TYPE i,
@@ -148,7 +149,10 @@ CLASS zcl_bmp DEFINITION PUBLIC CREATE PUBLIC
         RETURNING VALUE(rs_header) TYPE ts_bmp_header.
 ENDCLASS.
 
+
+
 CLASS zcl_bmp IMPLEMENTATION.
+
 
   METHOD constructor.
     super->constructor( ).
@@ -178,15 +182,6 @@ CLASS zcl_bmp IMPLEMENTATION.
     ENDDO.
   ENDMETHOD.
 
-  METHOD draw_pixel.
-    DATA lv_index TYPE i.
-    lv_index = ( io_coord->get_y( ) * mv_width ) + io_coord->get_x( ) + 1.
-    IF lv_index > 0 AND lv_index <= lines( mt_pixels ).
-      DATA lv_color TYPE x LENGTH 3.
-      lv_color = io_color->get_rgb( ).
-      mt_pixels[ lv_index ] = lv_color.
-    ENDIF.
-  ENDMETHOD.
 
   METHOD draw_line.
     DATA: x0 TYPE i, y0 TYPE i, x1 TYPE i, y1 TYPE i.
@@ -207,7 +202,7 @@ CLASS zcl_bmp IMPLEMENTATION.
     err = dx - dy.
     DATA e2 TYPE i.
     WHILE x0 <> x1 OR y0 <> y1.
-      draw_pixel( io_color = io_color io_coord = NEW zcl_bmp_coord( iv_x =  x0 iv_y =  y0 ) ).
+      draw_pixel( io_color = io_color io_coord = NEW zcl_image_coord( iv_x =  x0 iv_y =  y0 ) ).
       e2 = 2 * err.
       IF e2 > dy.
         err = err - dy.
@@ -218,13 +213,25 @@ CLASS zcl_bmp IMPLEMENTATION.
         y0 = y0 + sy.
       ENDIF.
     ENDWHILE.
-    draw_pixel( io_color = io_color io_coord = NEW zcl_bmp_coord( iv_x =  x0 iv_y =  y0 ) ).
+    draw_pixel( io_color = io_color io_coord = NEW zcl_image_coord( iv_x =  x0 iv_y =  y0 ) ).
   ENDMETHOD.
 
+
+  METHOD draw_pixel.
+    DATA lv_index TYPE i.
+    lv_index = ( io_coord->get_y( ) * mv_width ) + io_coord->get_x( ) + 1.
+    IF lv_index > 0 AND lv_index <= lines( mt_pixels ).
+      DATA lv_color TYPE x LENGTH 3.
+      lv_color = io_color->get_rgb_hex( ).
+      mt_pixels[ lv_index ] = lv_color.
+    ENDIF.
+  ENDMETHOD.
+
+
   METHOD draw_polygon.
-    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_bmp_coord.
-    DATA lo_coord1 TYPE REF TO zcl_bmp_coord.
-    DATA lo_coord2 TYPE REF TO zcl_bmp_coord.
+    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_image_coord.
+    DATA lo_coord1 TYPE REF TO zcl_image_coord.
+    DATA lo_coord2 TYPE REF TO zcl_image_coord.
     DATA lv_count TYPE i.
     DATA i TYPE i.
 
@@ -251,8 +258,8 @@ CLASS zcl_bmp IMPLEMENTATION.
     IF iv_fill = abap_true.
       DATA: lv_min_y   TYPE i, lv_max_y TYPE i, lv_y TYPE i,
             lt_xints   TYPE STANDARD TABLE OF i,
-            lo_coord_a TYPE REF TO zcl_bmp_coord,
-            lo_coord_b TYPE REF TO zcl_bmp_coord,
+            lo_coord_a TYPE REF TO zcl_image_coord,
+            lo_coord_b TYPE REF TO zcl_image_coord,
             lv_xa      TYPE i, lv_ya TYPE i, lv_xb TYPE i, lv_yb TYPE i,
             lv_x       TYPE i, lv_x1 TYPE i, lv_x2 TYPE i, lv_i TYPE i.
 
@@ -305,7 +312,7 @@ CLASS zcl_bmp IMPLEMENTATION.
           DO lv_x2 - lv_x1 + 1 TIMES.
             draw_pixel(
               io_color = io_color
-              io_coord = NEW zcl_bmp_coord( iv_x =  lv_x1 + sy-index - 1 iv_y =  lv_y )
+              io_coord = NEW zcl_image_coord( iv_x =  lv_x1 + sy-index - 1 iv_y =  lv_y )
             ).
           ENDDO.
           lv_i = lv_i + 2.
@@ -314,8 +321,9 @@ CLASS zcl_bmp IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
 
+
   METHOD draw_rectangle.
-    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_bmp_coord.
+    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_image_coord.
     APPEND io_coord1 TO lt_coords.
     APPEND io_coord2 TO lt_coords.
     APPEND io_coord3 TO lt_coords.
@@ -327,154 +335,6 @@ CLASS zcl_bmp IMPLEMENTATION.
     ).
   ENDMETHOD.
 
-  METHOD draw_triangle.
-    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_bmp_coord.
-    APPEND io_coord1 TO lt_coords.
-    APPEND io_coord2 TO lt_coords.
-    APPEND io_coord3 TO lt_coords.
-    draw_polygon(
-      io_color = io_color
-      it_coords = lt_coords
-      iv_fill = iv_fill
-    ).
-  ENDMETHOD.
-
-  METHOD get_xstring.
-    DATA: lv_xstring    TYPE xstring,
-          lv_header     TYPE x LENGTH 54,
-          lv_size       TYPE i,
-          lv_offset     TYPE i VALUE 54,
-          lv_width      TYPE i,
-          lv_height     TYPE i,
-          lv_planes     TYPE i VALUE 1,
-          lv_bpp        TYPE i VALUE 24,
-          lv_image_size TYPE i,
-          lv_pad        TYPE i,
-          lv_row        TYPE xstring,
-          lv_pixel      TYPE tt_pixel,
-          lv_i          TYPE i,
-          lv_j          TYPE i.
-    lv_width = mv_width.
-    lv_height = mv_height.
-    lv_pad = ( 4 - ( lv_width * 3 ) MOD 4 ) MOD 4.
-    lv_image_size = ( ( lv_width * 3 ) + lv_pad ) * lv_height.
-    lv_size = lv_offset + lv_image_size.
-    CLEAR lv_header.
-    lv_header = '424D'. " 'BM' signature
-    DATA lv_tmp_x TYPE x LENGTH 4.
-    DATA lv_tmp_x2 TYPE x LENGTH 2.
-    DATA lv_tmp_x1 TYPE x LENGTH 1.
-
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_size IMPORTING buffer = lv_tmp_x ).
-    lv_header+2(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+6(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_offset IMPORTING buffer = lv_tmp_x ).
-    lv_header+10(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 40 IMPORTING buffer = lv_tmp_x ).
-    lv_header+14(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_width IMPORTING buffer = lv_tmp_x ).
-    lv_header+18(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_height IMPORTING buffer = lv_tmp_x ).
-    lv_header+22(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_planes IMPORTING buffer = lv_tmp_x2 ).
-    lv_header+26(2) = lv_tmp_x2.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_bpp IMPORTING buffer = lv_tmp_x2 ).
-    lv_header+28(2) = lv_tmp_x2.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+30(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = lv_image_size IMPORTING buffer = lv_tmp_x ).
-    lv_header+34(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+38(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+42(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+46(4) = lv_tmp_x.
-    cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-    lv_header+50(4) = lv_tmp_x.
-    lv_xstring = lv_header.
-    DO lv_height TIMES.
-      DATA(lv_sy_index1) = sy-index.
-      CLEAR lv_row.
-      DO lv_width TIMES.
-        DATA(lv_sy_index2) = sy-index.
-        lv_i = ( lv_height - lv_sy_index1 ) * lv_width + lv_sy_index2.
-        lv_pixel = mt_pixels[ lv_i ].
-        DATA lv_pixel_xstring TYPE xstring.
-        lv_pixel_xstring = lv_pixel.
-        CONCATENATE lv_row lv_pixel_xstring INTO lv_row IN BYTE MODE.
-      ENDDO.
-      IF lv_pad > 0.
-        cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
-        lv_pixel_xstring = lv_tmp_x(lv_pad).
-        CONCATENATE lv_row lv_pixel_xstring INTO lv_row IN BYTE MODE.
-      ENDIF.
-      CONCATENATE lv_xstring lv_row INTO lv_xstring IN BYTE MODE.
-    ENDDO.
-    rv_xstring = lv_xstring.
-  ENDMETHOD.
-
-  METHOD import_from_xstring.
-    DATA:
-      lv_offset     TYPE i,
-      lv_pad        TYPE i,
-      lv_image_size TYPE i,
-      lv_x          TYPE xstring,
-      lv_pixel      TYPE x LENGTH 3,
-      lv_pos        TYPE i.
-
-    DATA(ls_header) = parse_bmp_header( iv_xstring ).
-
-    IF ls_header-bpp <> 24.
-      " Only 24bpp supported
-      RETURN.
-    ENDIF.
-    mv_width = ls_header-width.
-    mv_height = ls_header-height.
-    lv_offset = ls_header-offset.
-
-    CLEAR mt_pixels.
-    lv_pad = ( 4 - ( mv_width * 3 ) MOD 4 ) MOD 4.
-    lv_image_size = ( ( mv_width * 3 ) + lv_pad ) * mv_height.
-    lv_x = iv_xstring+lv_offset(lv_image_size).
-
-    " BMP files store image data from bottom to top, so we need to read rows in reverse order
-    " Calculate the starting position for the last row (bottom of image)
-    lv_pos = lv_image_size - ( ( mv_width * 3 ) + lv_pad ).
-
-    DO mv_height TIMES.
-      " Read each row from left to right
-      DO mv_width TIMES.
-        lv_pixel = lv_x+lv_pos(3).
-        APPEND lv_pixel TO mt_pixels.
-        lv_pos = lv_pos + 3.
-      ENDDO.
-      " Move to the previous row (going up in the image)
-      lv_pos = lv_pos - ( ( mv_width * 3 ) + lv_pad ) - ( mv_width * 3 ) - lv_pad.
-    ENDDO.
-  ENDMETHOD.
-
-  METHOD draw_text.
-    DATA: lv_len   TYPE i,
-          lv_idx   TYPE i,
-          lv_char  TYPE c LENGTH 1,
-          lv_x     TYPE i,
-          lv_y     TYPE i,
-          lo_coord TYPE REF TO zcl_bmp_coord.
-
-    lv_len = strlen( iv_text ).
-    lv_x = io_coord->get_x( ).
-    lv_y = io_coord->get_y( ).
-
-    DO lv_len TIMES.
-      lv_idx = sy-index - 1.
-      lv_char = iv_text+lv_idx(1).
-      CREATE OBJECT lo_coord EXPORTING iv_x = lv_x iv_y = lv_y.
-      draw_symbol( iv_symbol = lv_char io_coord = lo_coord ).
-      lv_x = lv_x + mv_glyph_width.
-    ENDDO.
-  ENDMETHOD.
 
   METHOD draw_symbol.
     DATA: lv_code        TYPE i,
@@ -549,6 +409,177 @@ CLASS zcl_bmp IMPLEMENTATION.
     ENDDO.
   ENDMETHOD.
 
+
+  METHOD draw_text.
+    DATA: lv_len   TYPE i,
+          lv_idx   TYPE i,
+          lv_char  TYPE c LENGTH 1,
+          lv_x     TYPE i,
+          lv_y     TYPE i,
+          lo_coord TYPE REF TO zcl_image_coord.
+
+    lv_len = strlen( iv_text ).
+    lv_x = io_coord->get_x( ).
+    lv_y = io_coord->get_y( ).
+
+    DO lv_len TIMES.
+      lv_idx = sy-index - 1.
+      lv_char = iv_text+lv_idx(1).
+      CREATE OBJECT lo_coord EXPORTING iv_x = lv_x iv_y = lv_y.
+      draw_symbol( iv_symbol = lv_char io_coord = lo_coord ).
+      lv_x = lv_x + mv_glyph_width.
+    ENDDO.
+  ENDMETHOD.
+
+
+  METHOD draw_triangle.
+    DATA lt_coords TYPE STANDARD TABLE OF REF TO zcl_image_coord.
+    APPEND io_coord1 TO lt_coords.
+    APPEND io_coord2 TO lt_coords.
+    APPEND io_coord3 TO lt_coords.
+    draw_polygon(
+      io_color = io_color
+      it_coords = lt_coords
+      iv_fill = iv_fill
+    ).
+  ENDMETHOD.
+
+
+  METHOD get_font_sizes.
+    rs_sizes = VALUE #(
+        width = mv_font_width
+        height = mv_font_height
+     ).
+  ENDMETHOD.
+
+
+  METHOD get_image_sizes.
+    rs_sizes = VALUE #(
+        width = mv_width
+        height = mv_height
+     ).
+  ENDMETHOD.
+
+
+  METHOD get_xstring.
+    DATA: lv_xstring    TYPE xstring,
+          lv_header     TYPE x LENGTH 54,
+          lv_size       TYPE i,
+          lv_offset     TYPE i VALUE 54,
+          lv_width      TYPE i,
+          lv_height     TYPE i,
+          lv_planes     TYPE i VALUE 1,
+          lv_bpp        TYPE i VALUE 24,
+          lv_image_size TYPE i,
+          lv_pad        TYPE i,
+          lv_row        TYPE xstring,
+          lv_pixel      TYPE tt_pixel,
+          lv_i          TYPE i,
+          lv_j          TYPE i.
+    lv_width = mv_width.
+    lv_height = mv_height.
+    lv_pad = ( 4 - ( lv_width * 3 ) MOD 4 ) MOD 4.
+    lv_image_size = ( ( lv_width * 3 ) + lv_pad ) * lv_height.
+    lv_size = lv_offset + lv_image_size.
+    CLEAR lv_header.
+    lv_header = '424D'. " 'BM' signature
+    DATA lv_tmp_x TYPE x LENGTH 4.
+    DATA lv_tmp_x2 TYPE x LENGTH 2.
+    DATA lv_tmp_x1 TYPE x LENGTH 1.
+
+    DATA(lo_converter) = cl_abap_conv_out_ce=>create( ).
+    lo_converter->convert( EXPORTING data = lv_size IMPORTING buffer = lv_tmp_x ).
+    lv_header+2(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+6(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = lv_offset IMPORTING buffer = lv_tmp_x ).
+    lv_header+10(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 40 IMPORTING buffer = lv_tmp_x ).
+    lv_header+14(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = lv_width IMPORTING buffer = lv_tmp_x ).
+    lv_header+18(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = lv_height IMPORTING buffer = lv_tmp_x ).
+    lv_header+22(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = lv_planes IMPORTING buffer = lv_tmp_x2 ).
+    lv_header+26(2) = lv_tmp_x2.
+    lo_converter->convert( EXPORTING data = lv_bpp IMPORTING buffer = lv_tmp_x2 ).
+    lv_header+28(2) = lv_tmp_x2.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+30(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = lv_image_size IMPORTING buffer = lv_tmp_x ).
+    lv_header+34(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+38(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+42(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+46(4) = lv_tmp_x.
+    lo_converter->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+    lv_header+50(4) = lv_tmp_x.
+    lv_xstring = lv_header.
+    DO lv_height TIMES.
+      DATA(lv_sy_index1) = sy-index.
+      CLEAR lv_row.
+      DO lv_width TIMES.
+        DATA(lv_sy_index2) = sy-index.
+        lv_i = ( lv_height - lv_sy_index1 ) * lv_width + lv_sy_index2.
+        lv_pixel = mt_pixels[ lv_i ].
+        DATA lv_pixel_xstring TYPE xstring.
+        lv_pixel_xstring = lv_pixel.
+        CONCATENATE lv_row lv_pixel_xstring INTO lv_row IN BYTE MODE.
+      ENDDO.
+      IF lv_pad > 0.
+        cl_abap_conv_out_ce=>create( )->convert( EXPORTING data = 0 IMPORTING buffer = lv_tmp_x ).
+        lv_pixel_xstring = lv_tmp_x(lv_pad).
+        CONCATENATE lv_row lv_pixel_xstring INTO lv_row IN BYTE MODE.
+      ENDIF.
+      CONCATENATE lv_xstring lv_row INTO lv_xstring IN BYTE MODE.
+    ENDDO.
+    rv_xstring = lv_xstring.
+  ENDMETHOD.
+
+
+  METHOD import_from_xstring.
+    DATA:
+      lv_offset     TYPE i,
+      lv_pad        TYPE i,
+      lv_image_size TYPE i,
+      lv_x          TYPE xstring,
+      lv_pixel      TYPE x LENGTH 3,
+      lv_pos        TYPE i.
+
+    DATA(ls_header) = parse_bmp_header( iv_xstring ).
+
+    IF ls_header-bpp <> 24.
+      " Only 24bpp supported
+      RETURN.
+    ENDIF.
+    mv_width = ls_header-width.
+    mv_height = ls_header-height.
+    lv_offset = ls_header-offset.
+
+    CLEAR mt_pixels.
+    lv_pad = ( 4 - ( mv_width * 3 ) MOD 4 ) MOD 4.
+    lv_image_size = ( ( mv_width * 3 ) + lv_pad ) * mv_height.
+    lv_x = iv_xstring+lv_offset(lv_image_size).
+
+    " BMP files store image data from bottom to top, so we need to read rows in reverse order
+    " Calculate the starting position for the last row (bottom of image)
+    lv_pos = lv_image_size - ( ( mv_width * 3 ) + lv_pad ).
+
+    DO mv_height TIMES.
+      " Read each row from left to right
+      DO mv_width TIMES.
+        lv_pixel = lv_x+lv_pos(3).
+        APPEND lv_pixel TO mt_pixels.
+        lv_pos = lv_pos + 3.
+      ENDDO.
+      " Move to the previous row (going up in the image)
+      lv_pos = lv_pos - ( ( mv_width * 3 ) + lv_pad ) - ( mv_width * 3 ) - lv_pad.
+    ENDDO.
+  ENDMETHOD.
+
+
   METHOD load_bmp_font.
     DATA lv_font_xstring TYPE xstring.
     CLEAR: mt_font_pixels, mv_font_width, mv_font_height.
@@ -595,19 +626,7 @@ CLASS zcl_bmp IMPLEMENTATION.
       lv_pos = lv_pos - ( ( mv_font_width * 3 ) + lv_pad ) - ( mv_font_width * 3 ) - lv_pad.
     ENDDO.
   ENDMETHOD.
-  METHOD get_font_sizes.
-    rs_sizes = VALUE #(
-        width = mv_font_width
-        height = mv_font_height
-     ).
-  ENDMETHOD.
 
-  METHOD get_image_sizes.
-    rs_sizes = VALUE #(
-        width = mv_width
-        height = mv_height
-     ).
-  ENDMETHOD.
 
   METHOD parse_bmp_header.
     DATA: lv_header     TYPE x LENGTH 54.
@@ -645,5 +664,8 @@ CLASS zcl_bmp IMPLEMENTATION.
         data = rs_header-offset ).
   ENDMETHOD.
 
-ENDCLASS.
+  METHOD get_mime_type.
+    rv_mime = 'image/bmp'.
+  ENDMETHOD.
 
+ENDCLASS.
