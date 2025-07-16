@@ -1,10 +1,11 @@
-# ABAP BMP Generator
+# ABAP Image Generator
 
 This project provides a set of ABAP classes and example programs for generating and manipulating BMP (bitmap) images directly within SAP. It includes utilities for drawing basic shapes, lines, polygons, and text, as well as a demonstration for plotting a sine graph and displaying or downloading the resulting BMP image in SAP GUI.
 
 ## Features
 
 - **BMP Image Generation**: Create BMP images of arbitrary size.
+- **SVG Image Generation**: Create SVG images with vector graphics that scale without loss of quality.
 - **Drawing Primitives**: Draw pixels, lines, rectangles, triangles, polygons, and filled shapes.
 - **Text Rendering**: Render text and symbols onto the BMP using a bitmap font.
 - **SAP GUI Integration**: Display images in a custom container or download them directly from SAP GUI.
@@ -13,8 +14,9 @@ This project provides a set of ABAP classes and example programs for generating 
 
 - `zcl_image_file`: Abstract base class for image file operations (e.g., loading, exporting, displaying, downloading images).
 - `zcl_bmp`: Core class for BMP image creation and drawing operations.
-- `zcl_bmp_color`, `zcl_bmp_coord`: Helper classes for color and coordinate management.
-- `z_bmp_smw0_downloader.func.abap`: Function module to download files (such as BMP fonts or images) from SAP's SMW0 repository to the application server or presentation server.
+- `zcl_image_color`, `zcl_image_coord`: Helper classes for color and coordinate management.
+- `zcl_svg`: Core class for SVG image creation and drawing operations (vector graphics).
+- `z_bmp_smw0_downloader`: Function module (in function group `Z_BMP`) to download files (such as BMP fonts or images) from SAP's SMW0 repository to the application server or presentation server.
 - `zcl_bmp_sine_graph`: Example class for drawing a sine graph.
 - `zshow_sine_bmp.abap`: Example program to display a sine graph BMP in a SAP GUI container.
 - `zdownload_sine_bmp.abap`: Example program to generate and download a sine graph BMP.
@@ -29,9 +31,9 @@ You can use the `zcl_bmp` class directly to create custom images:
 DATA(lo_bmp) = NEW zcl_bmp( iv_width = 400 iv_height = 300 ).
 " Draw a red line
 lo_bmp->draw_line(
-  io_color = NEW zcl_bmp_color( iv_r = 255 iv_g = 0 iv_b = 0 )
-  io_coord_start = NEW zcl_bmp_coord( iv_x = 10 iv_y = 10 )
-  io_coord_end   = NEW zcl_bmp_coord( iv_x = 390 iv_y = 290 )
+  io_color = NEW zcl_image_color( iv_r = 255 iv_g = 0 iv_b = 0 )
+  io_coord_start = NEW zcl_image_coord( iv_x = 10 iv_y = 10 )
+  io_coord_end   = NEW zcl_image_coord( iv_x = 390 iv_y = 290 )
 ).
 " Export as xstring or display/download as needed
 DATA(lv_xstring) = lo_bmp->get_xstring( ).
@@ -130,20 +132,32 @@ classDiagram
     #load_bmp_font()
     #parse_bmp_header(iv_file) ts_bmp_header
   }
+  class zcl_svg {
+    +draw_pixel(io_color, io_coord)
+    +draw_line(io_color, io_coord_start, io_coord_end)
+    +draw_rectangle(io_color, io_coord1, io_coord2, io_coord3, io_coord4, iv_fill)
+    +draw_triangle(io_color, io_coord1, io_coord2, io_coord3, iv_fill)
+    +draw_polygon(io_color, it_coords, iv_fill)
+    +draw_text(iv_text, io_coord)
+    +get_image_sizes() ts_sizes
+    +get_xstring() xstring
+  }
   class zcl_bmp_sine_graph {
     +draw_sine(iv_amplitude, iv_frequency, iv_phase)
     #draw_axes()
   }
-  class zcl_bmp_color {
+  class zcl_image_color {
     +constructor(iv_r, iv_g, iv_b)
     +get_rgb() tt_pixel
+    +to_css() string
   }
-  class zcl_bmp_coord {
+  class zcl_image_coord {
     +constructor(iv_x, iv_y)
     +get_x() i
     +get_y() i
   }
   zcl_bmp --|> zcl_image_file
+  zcl_svg --|> zcl_image_file
   zcl_bmp_sine_graph --|> zcl_bmp
 ```
 
@@ -163,8 +177,8 @@ You can install this project conveniently with [abapGit](https://github.com/abap
 
 ## Customization
 
-- Extend `zcl_bmp_sine_graph` or create your own subclasses of `zcl_bmp` for custom drawing logic.
-- Use helper classes for color (`zcl_bmp_color`) and coordinates (`zcl_bmp_coord`).
+- Extend `zcl_bmp_sine_graph` or create your own subclasses of `zcl_bmp` or `zcl_svg` for custom drawing logic.
+- Use helper classes for color (`zcl_image_color`) and coordinates (`zcl_image_coord`).
 
 ## License
 
