@@ -11,17 +11,35 @@ This project provides a set of ABAP classes and example programs for generating 
 
 ## Structure
 
-- `bmp_generator/zcl_image_file.clas.abap`: Abstract base class for image file operations (e.g., loading, exporting, displaying, downloading images).
-- `bmp_generator/zcl_bmp.clas.abap`: Core class for BMP image creation and drawing operations.
-- `bmp_generator/zcl_bmp_color.clas.abap`, `zcl_bmp_coord.clas.abap`: Helper classes for color and coordinate management.
-- `bmp_generator/z_bmp_smw0_downloader.func.abap`: Function module to download files (such as BMP fonts or images) from SAP's SMW0 repository to the application server or presentation server.
-- `examples/zcl_bmp_sine_graph.clas.abap`: Example class for drawing a sine graph.
-- `examples/zshow_sine_bmp.abap`: Example program to display a sine graph BMP in a SAP GUI container.
-- `examples/zdownload_sine_bmp.abap`: Example program to generate and download a sine graph BMP.
+- `zcl_image_file`: Abstract base class for image file operations (e.g., loading, exporting, displaying, downloading images).
+- `zcl_bmp`: Core class for BMP image creation and drawing operations.
+- `zcl_bmp_color`, `zcl_bmp_coord`: Helper classes for color and coordinate management.
+- `z_bmp_smw0_downloader.func.abap`: Function module to download files (such as BMP fonts or images) from SAP's SMW0 repository to the application server or presentation server.
+- `zcl_bmp_sine_graph`: Example class for drawing a sine graph.
+- `zshow_sine_bmp.abap`: Example program to display a sine graph BMP in a SAP GUI container.
+- `zdownload_sine_bmp.abap`: Example program to generate and download a sine graph BMP.
 
 ## Usage
 
-### 1. Display Sine Graph in SAP GUI
+### Drawing Custom Images
+
+You can use the `zcl_bmp` class directly to create custom images:
+
+```abap
+DATA(lo_bmp) = NEW zcl_bmp( iv_width = 400 iv_height = 300 ).
+" Draw a red line
+lo_bmp->draw_line(
+  io_color = NEW zcl_bmp_color( iv_r = 255 iv_g = 0 iv_b = 0 )
+  io_coord_start = NEW zcl_bmp_coord( iv_x = 10 iv_y = 10 )
+  io_coord_end   = NEW zcl_bmp_coord( iv_x = 390 iv_y = 290 )
+).
+" Export as xstring or display/download as needed
+DATA(lv_xstring) = lo_bmp->get_xstring( ).
+```
+
+## Examples
+
+### Display Sine Graph in SAP GUI
 
 This program generates a sine graph and displays it in a custom SAP GUI container.
 
@@ -52,7 +70,7 @@ ENDMODULE.
 
 **Screen 100** must be created in SE51 with a custom control named `PICTURE_AREA`.
 
-### 2. Download Sine Graph as BMP
+### Download Sine Graph as BMP
 
 This program generates a sine graph and prompts the user to download the BMP file.
 
@@ -66,22 +84,6 @@ DATA:
 DATA(lo_graph) = NEW zcl_bmp_sine_graph( iv_width = lv_width iv_height = lv_height ).
 lo_graph->draw_sine( ).
 lo_graph->download_in_sapgui( ).
-```
-
-### 3. Drawing Custom Images
-
-You can use the `zcl_bmp` class directly to create custom images:
-
-```abap
-DATA(lo_bmp) = NEW zcl_bmp( iv_width = 400 iv_height = 300 ).
-" Draw a red line
-lo_bmp->draw_line(
-  io_color = NEW zcl_bmp_color( iv_r = 255 iv_g = 0 iv_b = 0 )
-  io_coord_start = NEW zcl_bmp_coord( iv_x = 10 iv_y = 10 )
-  io_coord_end   = NEW zcl_bmp_coord( iv_x = 390 iv_y = 290 )
-).
-" Export as xstring or display/download as needed
-DATA(lv_xstring) = lo_bmp->get_xstring( ).
 ```
 
 ## Font Generation and Custom Fonts
@@ -153,8 +155,11 @@ classDiagram
 
 ## Installation
 
-1. Import the classes and reports into your SAP system using your preferred ABAP development tools (SE80, Eclipse, etc.).
-2. (Optional) Create the required screen (e.g., 100) with a custom control for GUI display.
+You can install this project conveniently with [abapGit](https://github.com/abapGit):
+
+1. In your SAP system, open transaction `ZABAPGIT` (or run the abapGit report) and clone this repository URL.
+2. Pull the repository and activate the imported objects.
+3. (Optional) For GUI display examples, create the required screen (e.g., 100) with a custom control named `PICTURE_AREA`.
 
 ## Customization
 

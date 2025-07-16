@@ -1,8 +1,11 @@
-FUNCTION Z_BMP_SMW0_DOWNLOADER
-  IMPORTING
-    IV_FILE_NAME TYPE W3OBJID
-  EXPORTING
-    EV_FILE_CONTENT TYPE XSTRING.
+FUNCTION z_bmp_smw0_downloader.
+*"----------------------------------------------------------------------
+*"*"Локальный интерфейс:
+*"  IMPORTING
+*"     REFERENCE(IV_FILE_NAME) TYPE  W3OBJID
+*"  EXPORTING
+*"     REFERENCE(EV_FILE_CONTENT) TYPE  XSTRING
+*"----------------------------------------------------------------------
 
   DATA: mime      TYPE STANDARD TABLE OF w3mime.
   DATA lv_bytelen TYPE i.
@@ -29,5 +32,8 @@ FUNCTION Z_BMP_SMW0_DOWNLOADER
       i_t_table = mime[]
     IMPORTING
       e_xstring = ev_file_content ).
+
+
+
 
 ENDFUNCTION.

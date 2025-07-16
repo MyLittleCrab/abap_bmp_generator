@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_FUGR" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <AREAT>Z_BMP</AREAT>
+   <INCLUDES>
+    <SOBJ_NAME>LZ_BMPTOP</SOBJ_NAME>
+    <SOBJ_NAME>SAPLZ_BMP</SOBJ_NAME>
+   </INCLUDES>
+   <FUNCTIONS>
+    <item>
+     <FUNCNAME>Z_BMP_SMW0_DOWNLOADER</FUNCNAME>
+     <SHORT_TEXT>Z_BMP_SMW0_DOWNLOADER</SHORT_TEXT>
+     <IMPORT>
+      <RSIMP>
+       <PARAMETER>IV_FILE_NAME</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>W3OBJID</TYP>
+      </RSIMP>
+     </IMPORT>
+     <EXPORT>
+      <RSEXP>
+       <PARAMETER>EV_FILE_CONTENT</PARAMETER>
+       <REFERENCE>X</REFERENCE>
+       <TYP>XSTRING</TYP>
+      </RSEXP>
+     </EXPORT>
+     <DOCUMENTATION>
+      <RSFDO>
+       <PARAMETER>IV_FILE_NAME</PARAMETER>
+       <KIND>P</KIND>
+       <STEXT>Имя объекта для SapWWW-шлюза</STEXT>
+      </RSFDO>
+      <RSFDO>
+       <PARAMETER>EV_FILE_CONTENT</PARAMETER>
+       <KIND>P</KIND>
+      </RSFDO>
+     </DOCUMENTATION>
+    </item>
+   </FUNCTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
